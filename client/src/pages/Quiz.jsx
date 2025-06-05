@@ -1,44 +1,30 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
 import Navbar from '../components/Navbar';
 
 function Quiz() {
+  const { id } = useParams();
   const navigate = useNavigate();
-  // Mock quiz data; will fetch from backend later
-  const questions = [
-    {
-      id: 1,
-      text: 'What is the primary purpose of React?',
-      options: [
-        'A. Server-side rendering',
-        'B. Building user interfaces',
-        'C. Database management',
-        'D. API development',
-      ],
-      correct: 'B',
-    },
-    {
-      id: 2,
-      text: 'Which of the following is a state management library for React?',
-      options: ['A. Redux', 'B. Axios', 'C. Express', 'D. Mongoose'],
-      correct: 'A',
-    },
-    {
-      id: 3,
-      text: 'What does JSX stand for?',
-      options: [
-        'A. JavaScript XML',
-        'B. JavaScript Xtreme',
-        'C. JavaScript Extension',
-        'D. JavaScript Execution',
-      ],
-      correct: 'A',
-    },
-
-  ];
-
+  const [questions, setQuestions] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchQuiz = async () => {
+      try {
+        const res = await axios.get(`http://localhost:5000/api/quizzes/${id}`);
+        console.log('Fetched quiz:', res.data);
+        setQuestions(res.data.questions);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error fetching quiz:', err);
+        alert('Failed to load quiz');
+      }
+    };
+    fetchQuiz();
+  }, [id]);
 
   const handleSelect = (option) => {
     setAnswers({ ...answers, [currentQuestion]: option });
@@ -57,8 +43,24 @@ function Quiz() {
   };
 
   const handleConfirm = () => {
-    navigate('/results');
+    navigate('/results', { state: { answers, questions } });
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
+        <p className="text-white">Loading quiz...</p>
+      </div>
+    );
+  }
+
+  if (!questions.length) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center">
+        <p className="text-white">No questions found for this quiz.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex flex-col">
@@ -68,7 +70,9 @@ function Quiz() {
           <h2 className="text-2xl font-bold text-white mb-4">
             Question {currentQuestion + 1} of {questions.length}
           </h2>
-          <p className="text-lg text-white mb-6">{questions[currentQuestion].text}</p>
+          <p className="text-lg text-white mb-6">
+            {questions[currentQuestion]?.text || 'No question text'}
+          </p>
           <div className="space-y-4">
             {questions[currentQuestion].options.map((option, index) => (
               <button

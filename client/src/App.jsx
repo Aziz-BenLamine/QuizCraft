@@ -9,7 +9,7 @@ function App() {
       <div className="min-h-screen">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="quiz" element={<Quiz />} />
+          <Route path="/quiz/:id" element={<Quiz />} />
           <Route path="results" element={<Results />} />
         </Routes>
       </div>
