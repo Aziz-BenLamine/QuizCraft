@@ -11,18 +11,53 @@ function Home() {
 
   const onDrop = useCallback(
     async (acceptedFiles) => {
-      setIsLoading(true);
+      if (acceptedFiles.length === 0) {
+        alert('No file selected');
+        return;
+      }
+      
       const file = acceptedFiles[0];
+      
+      // Validate file type
+      if (file.type !== 'application/pdf') {
+        alert('Please upload a PDF file only');
+        return;
+      }
+      
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB');
+        return;
+      }
+      
+      setIsLoading(true);
+      
       const formData = new FormData();
       formData.append('pdf', file);
-      formData.append('userId', 'mock-user-id'); // Replace with auth userId later
-
+      // Generate a valid ObjectId string (24 characters hex)
+      formData.append('userId', '507f1f77bcf86cd799439011'); // Valid ObjectId format
+  
       try {
-        const res = await axios.post('http://localhost:5000/api/quizzes/generate', formData);
-        navigate(`/quiz/${res.data.quiz._id}`);
+        console.log('Uploading file:', file.name, 'Size:', file.size);
+        
+        const res = await axios.post('http://localhost:5000/api/quizzes/generate', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 30000, // 30 second timeout
+        });
+        
+        console.log('Quiz generated successfully:', res.data);
+        navigate(`/quiz/${res.data.quizId}`);
       } catch (err) {
         console.error('Error generating quiz:', err);
-        alert('Failed to generate quiz');
+        if (err.response) {
+          alert(`Failed to generate quiz: ${err.response.data.msg || err.response.statusText}`);
+        } else if (err.request) {
+          alert('No response from server. Please check if the server is running.');
+        } else {
+          alert('Error uploading file. Please try again.');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -33,22 +68,34 @@ function Home() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'application/pdf': ['.pdf'] },
+    multiple: false,
+    maxSize: 10 * 1024 * 1024, // 10MB
   });
 
   const handlePromptSubmit = async (e) => {
     e.preventDefault();
-    if (!prompt) return alert('Please enter a prompt');
+    if (!prompt.trim()) {
+      alert('Please enter a prompt');
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/quizzes/generate', {
-        prompt,
-        userId: 'mock-user-id', // Replace with auth userId later
+      const res = await axios.post('http://localhost:5000/api/quizzes/generate-text', {
+        text: prompt,
+        userId: '507f1f77bcf86cd799439011', // Valid ObjectId format
       });
-      navigate(`/quiz/${res.data.quiz._id}`);
+      
+      console.log('Quiz generated from text:', res.data);
+      navigate(`/quiz/${res.data.quizId}`);
     } catch (err) {
       console.error('Error generating quiz:', err);
-      alert('Failed to generate quiz');
+      if (err.response) {
+        alert(`Failed to generate quiz: ${err.response.data.msg || err.response.statusText}`);
+      } else {
+        alert('Error generating quiz. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -58,43 +105,64 @@ function Home() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex flex-col">
       <Navbar />
       <div className="flex-grow flex flex-col items-center justify-center px-4">
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 text-center">
           Test Your Knowledge with AI-Generated Quizzes!
         </h1>
-        <p className="text-lg text-gray-300 mb-8">
+        <p className="text-lg text-gray-300 mb-8 text-center">
           Upload a PDF or enter a topic to create a custom quiz.
         </p>
+        
+        {/* PDF Upload Section */}
         <div
           {...getRootProps()}
-          className={`border-2 border-dashed border-gray-400 rounded-lg p-8 w-full max-w-lg text-center ${
-            isDragActive ? 'bg-gray-800' : 'bg-gray-900 bg-opacity-50'
+          className={`border-2 border-dashed border-gray-400 rounded-lg p-8 w-full max-w-lg text-center cursor-pointer transition-colors ${
+            isDragActive ? 'bg-gray-800 border-blue-400' : 'bg-gray-900 bg-opacity-50'
           }`}
         >
           <input {...getInputProps()} />
           {isDragActive ? (
             <p className="text-white">Drop the PDF here...</p>
           ) : (
-            <p className="text-white">
-              Drag and drop a PDF here, or click to select a file
-            </p>
+            <>
+              <p className="text-white mb-2">
+                Drag and drop a PDF here, or click to select a file
+              </p>
+              <p className="text-gray-400 text-sm">
+                Maximum file size: 10MB
+              </p>
+            </>
           )}
         </div>
-        <form onSubmit={handlePromptSubmit} className="mt-6 w-full max-w-lg">
+        
+        <div className="my-6 text-gray-400">OR</div>
+        
+        {/* Text Prompt Section */}
+        <form onSubmit={handlePromptSubmit} className="w-full max-w-lg">
           <input
             type="text"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Enter a topic (e.g., Python Basics)"
-            className="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400"
+            placeholder="Enter a topic (e.g., Python Basics, World History, Biology)"
+            className="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-400 focus:outline-none"
+            disabled={isLoading}
           />
           <button
             type="submit"
-            disabled={isLoading}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+            disabled={isLoading || !prompt.trim()}
+            className="mt-4 w-full px-4 py-3 bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
           >
-            {isLoading ? 'Generating...' : 'Generate Quiz from Prompt'}
+            {isLoading ? 'Generating Quiz...' : 'Generate Quiz from Text'}
           </button>
         </form>
+        
+        {isLoading && (
+          <div className="mt-6 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            <p className="text-white mt-2">
+              {isDragActive || prompt ? 'Processing your request...' : 'Loading...'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
