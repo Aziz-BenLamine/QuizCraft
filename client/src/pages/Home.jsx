@@ -34,17 +34,23 @@ function Home() {
       
       const formData = new FormData();
       formData.append('pdf', file);
-      // Generate a valid ObjectId string (24 characters hex)
-      formData.append('userId', '507f1f77bcf86cd799439011'); // Valid ObjectId format
+      
   
       try {
+        const token = localStorage.getItem('token');
+        if(!token) {
+          alert('You must be logged in to upload a file');
+          navigate('/login');
+          return;
+        }
         console.log('Uploading file:', file.name, 'Size:', file.size);
         
         const res = await axios.post('http://localhost:5000/api/quizzes/generate', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
           },
-          timeout: 30000, // 30 second timeout
+          timeout: 30000,
         });
         
         console.log('Quiz generated successfully:', res.data);
@@ -82,10 +88,21 @@ function Home() {
     setIsLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/quizzes/generate-text', {
-        text: prompt,
-        userId: '507f1f77bcf86cd799439011', // Valid ObjectId format
-      });
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please login to generate a quiz');
+        navigate('/login');
+        return;
+      }
+
+      const res = await axios.post('http://localhost:5000/api/quizzes/generate-text', 
+        { text: prompt },
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}` 
+          }
+        }
+      );
       
       console.log('Quiz generated from text:', res.data);
       navigate(`/quiz/${res.data.quizId}`);

@@ -1,9 +1,23 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 function Navbar() {
-  // Placeholder for now
-  const isLoggedIn = false;
-  const username = 'User'; 
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    navigate('/login');
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-gray-900 bg-opacity-90 z-10">
@@ -11,13 +25,26 @@ function Navbar() {
         <Link to="/" className="text-2xl font-bold text-white">
           QuizCraft
         </Link>
-        <div>
-          {isLoggedIn ? (
-            <span className="text-white">{username}</span>
+        <div className="flex space-x-4">
+          {user ? (
+            <>
+              <span className="text-white">{user.name}</span>
+              <button
+                onClick={handleLogout}
+                className="text-white hover:text-gray-300"
+              >
+                Logout
+              </button>
+            </>
           ) : (
-            <Link to="/login" className="text-white hover:text-gray-300">
-              Login
-            </Link>
+            <>
+              <Link to="/login" className="text-white hover:text-gray-300">
+                Login
+              </Link>
+              <Link to="/register" className="text-white hover:text-gray-300">
+                Register
+              </Link>
+            </>
           )}
         </div>
       </div>

@@ -15,15 +15,31 @@ function Quiz() {
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/quizzes/${id}`);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          alert('Please login to view the quiz');
+          navigate('/login');
+          return;
+        }
+
+        const res = await axios.get(`http://localhost:5000/api/quizzes/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
         console.log('Fetched quiz:', res.data);
         setQuiz(res.data);
         setQuestions(res.data.questions);
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching quiz:', err);
-        alert('Failed to load quiz');
-        navigate('/');
+        if (err.response?.status === 401) {
+          alert('Please login to view the quiz');
+          navigate('/login');
+        } else {
+          alert('Failed to load quiz');
+          navigate('/');
+        }
       }
     };
     fetchQuiz();

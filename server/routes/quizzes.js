@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const dotenv = require("dotenv");
 const multer = require('multer');
+const auth = require('../middleware/auth');
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -59,27 +60,18 @@ const generateQuestions = async (text) => {
 };
 
 // 1. Handle raw text input (application/json)
-router.post('/generate-text', async (req, res) => {
-  const { text, userId } = req.body;
+router.post('/generate-text', auth, async (req, res) => {
+  const { text } = req.body;
 
-  if (!text || !userId) {
-    return res.status(400).json({ msg: 'Missing text or userId' });
+  if (!text) {
+    return res.status(400).json({ msg: 'Missing text' });
   }
 
   try {
     const questions = await generateQuestions(text);
     
-    // Create a valid ObjectId or use the userId as string if it's already valid
-    let validUserId;
-    if (mongoose.Types.ObjectId.isValid(userId)) {
-      validUserId = new mongoose.Types.ObjectId(userId);
-    } else {
-      // Create a new ObjectId for mock users
-      validUserId = new mongoose.Types.ObjectId();
-    }
-
     const quiz = new Quiz({
-      userId: validUserId,
+      userId: req.userId, // Use userId from JWT token
       title: 'Auto-generated Quiz from Text',
       questions,
     });
@@ -93,19 +85,13 @@ router.post('/generate-text', async (req, res) => {
 });
 
 // 2. Handle PDF input (multipart/form-data)
-router.post('/generate', upload.single('pdf'), async (req, res) => {
+router.post('/generate', auth, upload.single('pdf'), async (req, res) => {
   console.log('File received:', req.file ? 'Yes' : 'No');
   console.log('Body:', req.body);
   
   try {
-    const userId = req.body.userId;
-    
     if (!req.file) {
       return res.status(400).json({ msg: 'No PDF file uploaded' });
-    }
-    
-    if (!userId) {
-      return res.status(400).json({ msg: 'Missing userId' });
     }
 
     console.log('Processing PDF...');
@@ -119,17 +105,8 @@ router.post('/generate', upload.single('pdf'), async (req, res) => {
     console.log('Generating questions...');
     const questions = await generateQuestions(text);
 
-    // Create a valid ObjectId or use the userId as string if it's already valid
-    let validUserId;
-    if (mongoose.Types.ObjectId.isValid(userId)) {
-      validUserId = new mongoose.Types.ObjectId(userId);
-    } else {
-      // Create a new ObjectId for mock users
-      validUserId = new mongoose.Types.ObjectId();
-    }
-
     const quiz = new Quiz({
-      userId: validUserId,
+      userId: req.userId, // Use userId from JWT token
       title: 'Auto-generated Quiz from PDF',
       questions,
     });
@@ -144,10 +121,13 @@ router.post('/generate', upload.single('pdf'), async (req, res) => {
 });
 
 // Get quiz by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) return res.status(404).json({ msg: 'Quiz not found' });
+    if (quiz.userId.toString() !== req.userId) {
+      return res.status(403).json({ msg: 'Unauthorized' });
+    }
     res.json(quiz);
   } catch (err) {
     console.error('Error fetching quiz:', err);

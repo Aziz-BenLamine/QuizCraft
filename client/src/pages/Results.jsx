@@ -9,8 +9,14 @@ function Results() {
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
     const saveAndFetchResult = async () => {
       if (!state?.answers || !state?.quizId) {
         console.error('Missing required data:', state);
@@ -20,24 +26,31 @@ function Results() {
       }
 
       try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Please login to view results');
+          navigate('/login');
+          return;
+        }
+
         console.log('Submitting quiz results:', {
           quizId: state.quizId,
           answers: state.answers,
-          userId: '507f1f77bcf86cd799439011'
         });
 
         // Save answers to backend
         const res = await axios.post('http://localhost:5000/api/results', {
           quizId: state.quizId,
           answers: state.answers,
-          userId: '507f1f77bcf86cd799439011', // Valid ObjectId format
+          headers: { Authorization: `Bearer ${token}` },
         });
         
         console.log('Result saved:', res.data);
         const resultId = res.data.resultId;
 
         // Fetch saved result
-        const resultRes = await axios.get(`http://localhost:5000/api/results/${resultId}`);
+        const resultRes = await axios.get(`http://localhost:5000/api/results/${resultId}`,
+          { headers: {Authorization: `Bearer ${token}`}});
         console.log('Result fetched:', resultRes.data);
         setResult(resultRes.data);
         setIsLoading(false);
@@ -55,7 +68,7 @@ function Results() {
     };
 
     saveAndFetchResult();
-  }, [state]);
+  }, [state, navigate]);
 
   const getScoreColor = (score) => {
     if (score >= 80) return 'text-green-400';
