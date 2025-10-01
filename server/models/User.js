@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String }, // Not required for Google users
   googleId: { type: String }, // Add googleId for Google users
+  githubId: { type: String }, // Add githubId for GitHub users
   createdAt: { type: Date, default: Date.now },
 });
 

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const GitHubStrategy = require('passport-github2').Strategy;
 const User = require('../models/User');
 
 const auth = (req, res, next) => {
@@ -42,6 +43,38 @@ passport.use(new GoogleStrategy({
           name: profile.displayName,
           email: profile.emails[0].value,
           avatar: profile.photos[0].value,
+        });
+      }
+    }
+    return done(null, user);
+  } catch (err) {
+    return done(err, null);
+  }
+}));
+
+passport.use(new GitHubStrategy({
+  clientID: process.env.GITHUB_CLIENT_ID,
+  clientSecret: process.env.GITHUB_CLIENT_SECRET,
+  callbackURL: '/api/auth/github/callback',
+}, async (accessToken, refreshToken, profile, done) => {
+  try {
+    // Find user by githubId
+    let user = await User.findOne({ githubId: profile.id });
+    if (!user) {
+      // If not found, check if user exists by email
+      user = await User.findOne({ email: profile.emails[0].value });
+      if (user) {
+        // Update user with githubId and avatar
+        user.githubId = profile.id;
+        user.avatar = profile.photos[0]?.value;
+        await user.save();
+      } else {
+        // Create new user
+        user = await User.create({
+          githubId: profile.id,
+          name: profile.displayName || profile.username,
+          email: profile.emails[0].value,
+          avatar: profile.photos[0]?.value,
         });
       }
     }

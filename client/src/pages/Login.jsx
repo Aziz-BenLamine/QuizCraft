@@ -64,6 +64,14 @@ function Login() {
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
             Login with Google
           </button>
+          <button
+            type="button"
+            className="w-full flex items-center justify-center gap-2 p-3 mb-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 transition"
+            onClick={() => window.location.href = 'http://localhost:5000/api/auth/github'}
+          >
+            <img src="https://www.svgrepo.com/show/512317/github-142.svg" alt="GitHub" className="w-5 h-5" />
+            Login with GitHub
+          </button>
           <p className="text-gray-400 mt-4">
             Don't have an account?{' '}
             <Link to="/register" className="text-blue-400">Register</Link>

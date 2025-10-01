@@ -80,4 +80,23 @@ router.get('/google/callback',
   }
 );
 
+// GitHub OAuth login route
+router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
+
+// GitHub OAuth callback route
+router.get('/github/callback',
+  passport.authenticate('github', { failureRedirect: '/login', session: true }),
+  (req, res) => {
+    // Successful authentication
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: req.user._id, name: req.user.name, email: req.user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    // Redirect to frontend with token as query param
+    res.redirect(`http://localhost:5173?token=${token}`);
+  }
+);
+
 module.exports = router;
