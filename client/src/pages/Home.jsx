@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -8,6 +8,17 @@ function Home() {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Check for token in URL after Google OAuth
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      localStorage.setItem('token', token);
+      // Optionally, fetch user info here and store it
+      navigate('/'); // Redirect to home after storing token
+    }
+  }, [navigate]);
 
   const onDrop = useCallback(
     async (acceptedFiles) => {

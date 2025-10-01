@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const session = require('express-session');
+const passport = require('passport');
 
 dotenv.config();
 
@@ -11,7 +13,15 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // Set to true if using HTTPS
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+require('./middleware/auth'); // Ensure Passport strategies are registered
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {

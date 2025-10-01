@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const dotenv = require("dotenv");
 const multer = require('multer');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 // Configure multer for file uploads
 const upload = multer({ 

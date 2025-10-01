@@ -9,6 +9,17 @@ function Navbar() {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+    } else {
+      // Try to decode token and get user info if available
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          setUser({ name: payload.name, email: payload.email });
+        } catch (e) {
+          // Invalid token, ignore
+        }
+      }
     }
   }, []);
 
